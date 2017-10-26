@@ -1,29 +1,59 @@
 package selectors
 
 const (
-	Welcome                          = ".welcome"
-	Logout                           = ".logout"
-	Task                             = "li.task"
-	TaskCompleted                    = "li.task.completed"
-	TaskToggle                       = "li.task .toggle"
-	TaskDelete                       = "li.task .delete"
-	TaskList                         = "ul.tasks"
-	Errors                           = ".errors"
-	LoginForm                        = "form.login"
-	LoginFormSubmit                  = "form.login input[type=\"submit\"]"
-	LoginFormEmail                   = "form.login input[name=\"email\"]"
-	LoginFormPassword                = "form.login input[name=\"password\"]"
-	RegisterForm                     = "form.register"
-	RegisterFormSubmit               = "form.register input[type=\"submit\"]"
-	RegisterFormEmail                = "form.register input[name=\"email\"]"
-	RegisterFormName                 = "form.register input[name=\"name\"]"
-	RegisterFormPassword             = "form.register input[name=\"password\"]"
-	RegisterFormPasswordConfirmation = "form.register input[name=\"passwordConfirmation\"]"
-	TaskForm                         = "form.createTask"
-	TaskFormName                     = "form.createTask input[name=\"name\"]"
-	TaskFormDescription              = "form.createTask input[name=\"description\"]"
-	TaskFormCollaborator1            = "form.createTask input[name=\"collaborator1\"]"
-	TaskFormCollaborator2            = "form.createTask input[name=\"collaborator2\"]"
-	TaskFormCollaborator3            = "form.createTask input[name=\"collaborator3\"]"
-	TaskFormSubmit                   = "form.createTask input[type=\"submit\"]"
+	// Every page ...
+	Header          = "header"
+	BootstrapHref   = "head link[rel=\"stylesheet\"][href*=\"bootstrap\"]"
+	Footer          = "footer"
+	FooterHomeLink  = "footer a[href=\"/\"]"
+	FooterAboutLink = "footer a[href=\"/about\"]"
+	Errors          = "ul[class=\"form-errors\"]"
+
+	// home
+	TeamLogo        = "* img[id=\"logo\"]"
+	PageTitle       = "title"
+	EventList       = "ul li[class=\"event\"][id^=\"event-\"]"
+	EventTime       = "li[class=\"event\"][id^=\"event-\"] time"
+	EventDetailLink = "li[class=\"event\"][id^=\"event-\"] a[id=\"title\"][href*=\"/events/\"]" // how to specify title?
+	NewEventLink    = "[id=\"new\"]"
+	MobileResponse  = "div[id=\"mobile\"] :visible"
+	DesktopResponse = "#response "
+
+	// about
+	Names     = "span[id$=\"-name\"]"    // how to get nickname programatically?
+	Headshots = "img[id$=\"-headshot\"]" // ditto
+
+	// new event
+	NewEventForm          = "form[method=\"POST\"]"
+	NewEventTitle         = "form input[name=\"title\"]"
+	NewEventTitleLabel    = "form label[for=\"title\"]"
+	NewEventImage         = "form input[name=\"image\"]"
+	NewEventImageLabel    = "form label[for=\"image\"]"
+	NewEventLocation      = "form input[name=\"location\"]"
+	NewEventLocationLabel = "form label[for=\"location\"]"
+	NewEventYear          = "form select[name=\"year\"]"
+	NewEventYearOption    = "form select[name=\"year\"] option"
+	NewEventYearLabel     = "form label[for=\"year\"]"
+	NewEventMonth         = "form select[name=\"month\"]"
+	NewEventMonthOption   = "form select[name=\"month\"] option"
+	NewEventMonthLabel    = "form label[for=\"month\"]"
+	NewEventDay           = "form select[name=\"day\"]"
+	NewEventDayLabel      = "form label[for=\"day\"]"
+	NewEventDayOption     = "form select[name=\"day\"] option"
+	NewEventHour          = "form select[name=\"hour\"]"
+	NewEventHourLabel     = "form label[for=\"hour\"]"
+	NewEventHourOption    = "form select[name=\"hour\"] option"
+	NewEventMinute        = "form select[name=\"minute\"]"
+	NewEventMinuteLabel   = "form label[for=\"minute\"]"
+	NewEventMinuteOption  = "form select[name=\"minute\"] option"
+	NewEventSubmit        = "form [name=\"submit\"]"
+
+	// event detail
+	EventTitle      = "h1[id=\"title\"]"
+	EventDate       = "span[id=\"date\"]"
+	EventLocation   = "span[id=\"location\"]"
+	EventImage      = "img[id=\"image\"]"
+	EventAttendees  = "ul[id=\"attendees\"] li"
+	RsvpEmail       = "form[method=\"POST\"] input[type=\"email\"][name=\"email\"]"
+	RsvpEmailSubmit = "form [name=\"submit\"]"
 )

@@ -3,13 +3,16 @@ package tests
 import (
 	"fmt"
 	"log"
-	"net/url"
+	"math/rand"
+	"strings"
 	"time"
 
 	goselenium "github.com/bunsenapp/go-selenium"
-	"github.com/yale-cpsc-213/social-todo-selenium-tests/tests/selectors"
+	"github.com/yale-mgt-656/eventbrite-clone-selenium-tests/tests/selectors"
 )
 
+// RunForURL - runs the test given a target URL
+//
 func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration time.Duration) (int, int, error) {
 	// Create capabilities, driver etc.
 	capabilities := goselenium.Capabilities{}
@@ -27,26 +30,37 @@ func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration 
 		return 0, 0, err
 	}
 
+	goselenium.SessionPageLoadTimeout(5)
+
 	// Delete the session once this function is completed.
 	defer driver.DeleteSession()
 
 	return Run(driver, testURL, true, failFast, sleepDuration)
 }
 
+type existanceTest struct {
+	selector    string
+	description string
+}
+
 // Run - run all tests
 //
 func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast bool, sleepDuration time.Duration) (int, int, error) {
+	// Close down Selenium/Chromedriver on exit
+	defer driver.DeleteSession()
+
+	// Track how many tests passed and failed
 	numPassed := 0
 	numFailed := 0
+
+	// Log to the console, if we're in verbose mode
 	doLog := func(args ...interface{}) {
 		if verbose {
 			fmt.Println(args...)
 		}
 	}
-	die := func(msg string) {
-		driver.DeleteSession()
-		log.Fatalln(msg)
-	}
+
+	// Log a test result to the console. Incrementing num passed/failed.
 	logTestResult := func(passed bool, err error, testDesc string) {
 		doLog(statusText(passed && (err == nil)), "-", testDesc)
 		if passed && err == nil {
@@ -55,22 +69,11 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 			numFailed++
 			if failFast {
 				time.Sleep(5000 * time.Millisecond)
-				die("Found first failing test, quitting")
+				log.Fatalln("Found first failing test, quitting")
 			}
 		}
 	}
 
-	users := []User{
-		randomUser(),
-		randomUser(),
-		randomUser(),
-	}
-
-	doLog("When no user is logged in, your site")
-
-	getEl := func(sel string) (goselenium.Element, error) {
-		return driver.FindElement(goselenium.ByCSSSelector(sel))
-	}
 	countCSSSelector := func(sel string) int {
 		elements, xerr := driver.FindElements(goselenium.ByCSSSelector(sel))
 		if xerr == nil {
@@ -82,40 +85,173 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 		count := countCSSSelector(sel)
 		return (count != 0)
 	}
-	cssSelectorsExists := func(sels ...string) bool {
-		for _, sel := range sels {
-			if cssSelectorExists(sel) == false {
-				return false
-			}
+	checkGoodRsvps := func(eventNum int) {
+		goodRsvps := getGoodRsvps()
+		for _, rsvp := range goodRsvps {
+			numOriginalRsvps := countCSSSelector(selectors.EventAttendees)
+			msg := "should allow RSVP with " + rsvp.attribute
+			err2 := fillRSVPForm(driver, testURL+"/events/"+fmt.Sprint(eventNum), rsvp)
+			time.Sleep(sleepDuration)
+			numNewRsvps := countCSSSelector(selectors.EventAttendees)
+			result := (numNewRsvps == (numOriginalRsvps + 1))
+			logTestResult(result, err2, msg)
 		}
-		return true
+	}
+	checkBadRsvps := func(eventNum int) {
+		badRsvps := getBadRsvps()
+		for _, rsvp := range badRsvps {
+			msg := "should not allow RSVP with " + rsvp.flaw
+			err2 := fillRSVPForm(driver, testURL+"/events/"+fmt.Sprint(eventNum), rsvp)
+			time.Sleep(sleepDuration)
+			result := cssSelectorExists(selectors.Errors)
+			logTestResult(result, err2, msg)
+		}
 	}
 
-	// Navigate to the URL.
+	logExists := func(cssSelector string, description string) bool {
+		result := cssSelectorExists(cssSelector)
+		logTestResult(result, nil, description)
+		return result
+	}
+	logAllExist := func(description string, cssSelectors ...string) bool {
+		allExist := true
+		for _, cssSelector := range cssSelectors {
+			result := cssSelectorExists(cssSelector)
+			if result == false {
+				allExist = false
+				break
+			}
+		}
+		logTestResult(allExist, nil, description)
+		return allExist
+	}
+
+	// Checks the structure of a randomly chosen event
+	checkEvent := func(maxEventNum int) {
+		eventNum := rand.Intn(3)
+		doLog("\nEvent " + fmt.Sprint(eventNum) + " (randomly chosen):")
+		time.Sleep(sleepDuration)
+
+		_, err := driver.Go(testURL + "/events/" + fmt.Sprint(eventNum))
+		logTestResult(true, err, "is reachable")
+
+		existanceTests := []existanceTest{
+			{selectors.BootstrapHref, "uses bootstrap"},
+			{selectors.Header, "has a header"},
+			{selectors.Footer, "has a footer"},
+			{selectors.FooterAboutLink, "has a link to the about page in footer"},
+			{selectors.FooterHomeLink, "has a link to the home page in footer"},
+			{selectors.EventTitle, "has a title"},
+			{selectors.EventDate, "has a date"},
+			{selectors.EventLocation, "has a location"},
+			{selectors.EventImage, "has an image"},
+			{selectors.EventAttendees, "has a list of attendees"},
+			{selectors.RsvpEmail, "has a form to RSVP"},
+		}
+		for _, t := range existanceTests {
+			logExists(t.selector, t.description)
+		}
+
+		checkBadRsvps(eventNum)
+		checkGoodRsvps(eventNum)
+	}
+
+	doLog("\nHome page:")
 	_, err := driver.Go(testURL)
-	logTestResult(true, err, "should be up and running")
+	logTestResult(true, err, "is reachable")
 
+	homepageTests := []existanceTest{
+		{selectors.PageTitle, "has a title"},
+		{selectors.BootstrapHref, "uses bootstrap"},
+		{selectors.Header, "has a header"},
+		{selectors.Footer, "has a footer"},
+		{selectors.FooterAboutLink, "has a link to the about page in footer"},
+		{selectors.FooterHomeLink, "has a link to the home page in footer"},
+		{selectors.TeamLogo, "has your team logo"},
+		{selectors.NewEventLink, "has a link to the new event page"},
+		{selectors.EventList, "has a list of events"},
+		{selectors.EventDetailLink, "each event links to a \"detail\" page"},
+		{selectors.EventTime, "each event shows its time"},
+	}
+	for _, t := range homepageTests {
+		logExists(t.selector, t.description)
+	}
+
+	// TODO: test mobile responsiveness. Likely need to inject some JS into
+	// the DOM in order to accomplish this. Or, can we adjust the viewport
+	// size via WebDriver?
+	// doLog("\nMobile responsiveness:")
+	// result = cssSelectorExists(selectors.DesktopResponse)
+	// doLog(result)
+
+	doLog("\nAbout page:")
 	time.Sleep(sleepDuration)
-	result := cssSelectorExists(selectors.LoginForm)
-	logTestResult(result, nil, "should have a login form")
 
-	result = cssSelectorExists(selectors.RegisterForm)
-	logTestResult(result, nil, "should have a registration form")
+	_, err = driver.Go(testURL + "/about")
+	logTestResult(true, err, "should be reachable")
 
-	welcomeCount := countCSSSelector(selectors.Welcome)
-	logTestResult(welcomeCount == 0, nil, "should not be welcoming anybody b/c nobody is logged in!")
+	result := cssSelectorExists(selectors.Names)
+	logTestResult(result, nil, "has your names")
 
-	doLog("When trying to register, your site")
+	result = cssSelectorExists(selectors.Headshots)
+	logTestResult(result, nil, "shows your headshots")
 
-	err = submitForm(driver, selectors.LoginForm, users[0].loginFormData(), selectors.LoginFormSubmit)
+	// Check the structure of one of the event pages
+	checkEvent(3)
+
+	doLog("\nNew event page:")
 	time.Sleep(sleepDuration)
-	result = cssSelectorExists(selectors.Errors)
-	logTestResult(result, err, "should not allow unrecognized users to log in")
 
-	badUsers := getBadUsers()
-	for _, user := range badUsers {
-		msg := "should not allow registration of a user with " + user.flaw
-		err2 := registerUser(driver, testURL, user)
+	_, err = driver.Go(testURL + "/events/new")
+	logTestResult(true, err, "is reachable")
+
+	logExists(selectors.NewEventForm, "has a form for event submission")
+	logAllExist(
+		"the form has a title input field with label",
+		selectors.NewEventTitle,
+		selectors.NewEventTitleLabel,
+	)
+	logAllExist(
+		"the form has a image input field with label",
+		selectors.NewEventImage,
+		selectors.NewEventImageLabel,
+	)
+	logAllExist(
+		"the form has a location text field with label",
+		selectors.NewEventLocation,
+		selectors.NewEventLocationLabel,
+	)
+	logAllExist(
+		"the form has a year dropdown field with label",
+		selectors.NewEventYear,
+		selectors.NewEventYearLabel,
+	)
+	logAllExist(
+		"the form has a month dropdown field with label",
+		selectors.NewEventMonth,
+		selectors.NewEventMonthLabel,
+	)
+	logAllExist(
+		"the form has a day dropdown field with label",
+		selectors.NewEventDay,
+		selectors.NewEventDayLabel,
+	)
+	logAllExist(
+		"the form has a hour dropdown field with label",
+		selectors.NewEventHour,
+		selectors.NewEventHourLabel,
+	)
+
+	logAllExist(
+		"the form has a minute dropdown field with label",
+		selectors.NewEventMinute,
+		selectors.NewEventMinuteLabel,
+	)
+
+	badEvents := getBadEvents()
+	for _, event := range badEvents {
+		msg := "should not allow user to submit event with " + event.flaw
+		err2 := fillEventForm(driver, testURL+"/events/new", event)
 		time.Sleep(sleepDuration)
 		if err2 == nil {
 			result = cssSelectorExists(selectors.Errors)
@@ -123,125 +259,46 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 		logTestResult(result, err2, msg)
 	}
 
-	err = registerUser(driver, testURL, users[0])
-	if err == nil {
-		time.Sleep(sleepDuration)
-		result = cssSelectorExists(selectors.Welcome)
-	}
-	logTestResult(result, err, "should welcome users that register with valid credentials")
+	// client := http.Client{
+	// 	Timeout: time.Second * 5,
+	// }
+	// response, err := client.PostForm(testURL+"/events/new", badEvents[0].getURLValues())
+	// fmt.Println(response.
+	// fmt.Println(err)
+	// fmt.Println(response)
+	// return 1, 1, nil
 
-	el, err := getEl(".logout")
+	apiTestData := createFormDataAPITest()
+	msg := "should allow event creation with valid parameters, redirecting to the new event after creation"
+	time.Sleep(sleepDuration)
+	err2 := fillEventForm(driver, testURL+"/events/new", apiTestData)
 	result = false
-	if err == nil {
-		el.Click()
-		var response *goselenium.CurrentURLResponse
-		response, err = driver.CurrentURL()
-		if err == nil {
-			var parsedURL *url.URL
-			parsedURL, err = url.Parse(response.URL)
-			if err == nil {
-				result = parsedURL.Path == "/"
-				if result {
-					time.Sleep(sleepDuration)
-					result = cssSelectorsExists(selectors.LoginForm, selectors.RegisterForm)
-				}
-			}
+	if err2 == nil {
+		src, err3 := driver.PageSource()
+		if err3 == nil {
+			// This is in imperfect test. We're testing to see if the
+			// title of this new event occurs any where in the source
+			// of the page returned. This is the broadest test we could
+			// think of. Still, imperfect.
+			result = strings.Contains(src.Source, apiTestData.Title)
 		}
 	}
-	logTestResult(result, err, "should redirect users to '/' after logout")
+	logTestResult(result, nil, msg)
 
-	logout := func() {
-		element, _ := getEl(".logout")
-		result = false
-		if err == nil {
-			element.Click()
-		}
-	}
-
-	// Register the other two users
-	err = registerUser(driver, testURL, users[1])
-	if err != nil {
-		die("Error registering second user")
-	}
-	logout()
-	err = registerUser(driver, testURL, users[2])
-	if err != nil {
-		die("Error registering third user")
-	}
-	logout()
-
-	fmt.Println("A newly registered user")
-	err = loginUser(driver, testURL, users[0])
+	doLog("\nAPI:")
 	time.Sleep(sleepDuration)
-	logTestResult(countCSSSelector(selectors.Welcome) == 1, err, "should be able to log in again")
+	success := testAPIResponse(testURL+"/api/events", func(ar apiResponse) bool {
+		return true
+	})
+	logTestResult(success, nil, "should return valid JSON")
 
-	numTasks := countCSSSelector(selectors.Task)
-	logTestResult(numTasks == 0, nil, "should see no tasks at first")
+	success = testAPIResponse(testURL+"/api/events?search="+apiTestData.Title, func(ar apiResponse) bool {
+		return len(ar.Events) == 1
+	})
+	logTestResult(success, nil, "should be searchable by event title")
 
-	numTaskForms := countCSSSelector(selectors.TaskForm)
-	logTestResult(numTaskForms == 1, nil, "should see a form for submitting tasks")
-
-	badTasks := getBadTasks()
-	for _, task := range badTasks {
-		msg := "should not be able to create a task with " + task.flaw
-		err2 := submitTaskForm(driver, testURL, task)
-		var count int
-		if err2 == nil {
-			time.Sleep(sleepDuration)
-			count = countCSSSelector(selectors.Errors)
-		}
-		logTestResult(count == 1, err2, msg)
-	}
-
-	task := randomTask(false)
-	task.collaborator1 = users[1].email
-	err = submitTaskForm(driver, testURL, task)
-	time.Sleep(sleepDuration)
-	numTasks = countCSSSelector(selectors.Task)
-	logTestResult(numTasks == 1, err, "should see a task after a valid task is submitted")
-
-	task = randomTask(false)
-	err = submitTaskForm(driver, testURL, task)
-	time.Sleep(sleepDuration)
-	numTasks = countCSSSelector(selectors.Task)
-	logTestResult(numTasks == 2, err, "should see two tasks after another is submitted")
-	time.Sleep(3000 * time.Millisecond)
-
-	logout()
-	fmt.Println("User #2, after logging in")
-	_ = loginUser(driver, testURL, users[1])
-	time.Sleep(sleepDuration)
-	numTasks = countCSSSelector(selectors.Task)
-	logTestResult(numTasks == 1, err, "should be able to see the task that was shared with her by user #1")
-	logTestResult(numTasks == 1 && countCSSSelector(selectors.TaskDelete) == 0, err, "should not be not prompted to delete that task (she's not the owner)")
-	logTestResult(numTasks == 1 && countCSSSelector(selectors.TaskCompleted) == 0, err, "should see the task as incomplete")
-	logTestResult(numTasks == 1 && countCSSSelector(selectors.TaskToggle) == 1, err, "should be able to mark the the task as complete")
-	el, err = getEl(selectors.TaskToggle)
-	el.Click()
-	time.Sleep(sleepDuration)
-	logTestResult(countCSSSelector(selectors.TaskCompleted) == 1, err, "should see the task as complete after clicking the \"toggle\" action")
-	logout()
-
-	_ = loginUser(driver, testURL, users[0])
-	fmt.Println("User #1, after logging in")
-	time.Sleep(sleepDuration)
-	numCompleted := countCSSSelector(selectors.TaskCompleted)
-	numTasks = countCSSSelector(selectors.Task)
-	logTestResult(numTasks == 2 && numCompleted == 1, err, "should see one of the two tasks marked as completed")
-	el, err = getEl(selectors.TaskToggle)
-	el.Click()
-	time.Sleep(sleepDuration)
-	logTestResult(countCSSSelector(selectors.TaskCompleted) == 0, err, "should be able to mark that is incompleted when she clicks the \"toggle\" action")
-	logTestResult(countCSSSelector(selectors.TaskDelete) == 2, err, "should be prompted to delete both tasks (she's the owner)")
-	el, err = getEl(selectors.TaskDelete)
-	el.Click()
-	time.Sleep(sleepDuration)
-	logTestResult(countCSSSelector(selectors.Task) == 1, err, "should only see one after deleting a task")
-	numTasks = countCSSSelector(selectors.Task)
-	el, err = getEl(selectors.TaskDelete)
-	el.Click()
-	time.Sleep(sleepDuration)
-	logTestResult(numTasks == 1 && countCSSSelector(selectors.Task) == 0, err, "should see none after deleting two tasks")
+	fmt.Printf("\n✅  Passed: %d", numPassed)
+	fmt.Printf("\n❌  Failed: %d\n\n", numFailed)
 
 	return numPassed, numFailed, err
 }

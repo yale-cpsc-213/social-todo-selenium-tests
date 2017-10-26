@@ -2,7 +2,7 @@ package tests
 
 import (
 	goselenium "github.com/bunsenapp/go-selenium"
-	"github.com/yale-cpsc-213/social-todo-selenium-tests/tests/selectors"
+	"github.com/yale-mgt-656/eventbrite-clone-selenium-tests/tests/selectors"
 )
 
 func fillForm(driver goselenium.WebDriver, formSelector string, data map[string]string) error {
@@ -36,30 +36,21 @@ func submitForm(driver goselenium.WebDriver, formSelector string, data map[strin
 	return nil
 }
 
-func registerUser(driver goselenium.WebDriver, testURL string, user User) error {
+func fillRSVPForm(driver goselenium.WebDriver, testURL string, rsvp RSVP) error {
 	err2 := loadHome(driver, testURL)
 	if err2 != nil {
 		return err2
 	}
-	err2 = submitForm(driver, selectors.RegisterForm, user.registerFormData(), selectors.RegisterFormSubmit)
+	err2 = submitForm(driver, selectors.RsvpEmail, rsvp.sendRSVP(), selectors.RsvpEmailSubmit)
 	return err2
 }
 
-func loginUser(driver goselenium.WebDriver, testURL string, user User) error {
+func fillEventForm(driver goselenium.WebDriver, testURL string, event Event) error {
 	err2 := loadHome(driver, testURL)
 	if err2 != nil {
 		return err2
 	}
-	err2 = submitForm(driver, selectors.LoginForm, user.loginFormData(), selectors.LoginFormSubmit)
-	return err2
-}
-
-func submitTaskForm(driver goselenium.WebDriver, testURL string, task Task) error {
-	err2 := loadHome(driver, testURL)
-	if err2 != nil {
-		return err2
-	}
-	err2 = submitForm(driver, selectors.TaskForm, task.createFormData(), selectors.TaskFormSubmit)
+	err2 = submitForm(driver, selectors.NewEventForm, event.createFormData(), selectors.NewEventSubmit)
 	return err2
 }
 
@@ -81,7 +72,7 @@ func loadHome(driver goselenium.WebDriver, targetURL string) error {
 
 func statusText(pass bool) string {
 	if pass {
-		return "✅ PASS"
+		return "✅  PASS"
 	}
-	return "❌ FAIL"
+	return "❌  FAIL"
 }
