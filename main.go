@@ -30,7 +30,7 @@ func main() {
 	if len(os.Args) >= 4 && strings.Contains(os.Args[3], "fast") {
 		failFast = true
 	}
-	todotests.RunForURL(os.Args[1], os.Args[2], failFast)
+	todotests.RunForURL(os.Args[1], os.Args[2], failFast, 1)
 }
 
 func isValidURL(u string) bool {

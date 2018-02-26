@@ -4,11 +4,7 @@ These are the tests for the social todo.
 
 ## Running the code
 
-You can download binaries here:
-
-* [Windows](https://kljensen.s3.amazonaws.com/public/social-todo-selenium-tests/windows/social-todo-selenium-tests.exe)
-* [Linux](https://kljensen.s3.amazonaws.com/public/social-todo-selenium-tests/linux/social-todo-selenium-tests)
-* [Mac](https://kljensen.s3.amazonaws.com/public/social-todo-selenium-tests/mac/social-todo-selenium-tests)
+You can download binaries on the [releases](https://github.com/yale-cpsc-213/social-todo-selenium-tests/releases) section of this repo on GitHub.
 
 You'll need to make the code executable (likely `chmod` or the Windows equivalent). The code runs the tests by automating a browser via the [WebDriver](https://www.w3.org/TR/webdriver/) protocol. When I completed the assignment, I used either [Selenium stand-alone server](http://www.seleniumhq.org/download/) or
 [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/) as my interface to Chrome.
