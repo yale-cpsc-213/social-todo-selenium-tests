@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 
 	goselenium "github.com/bunsenapp/go-selenium"
 	"github.com/yale-cpsc-213/social-todo-selenium-tests/tests/selectors"
 )
 
+// RunForURL runs all tests for a single URL
 func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration time.Duration) (int, int, error) {
 	// Create capabilities, driver etc.
 	capabilities := goselenium.Capabilities{}
@@ -26,6 +28,8 @@ func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration 
 		log.Println(err)
 		return 0, 0, err
 	}
+
+	handleC9SplashPage(driver)
 
 	// Delete the session once this function is completed.
 	defer driver.DeleteSession()
@@ -93,6 +97,9 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 
 	// Navigate to the URL.
 	_, err := driver.Go(testURL)
+	if err == nil {
+		handleC9SplashPage(driver)
+	}
 	logTestResult(true, err, "should be up and running")
 
 	time.Sleep(sleepDuration)
@@ -244,4 +251,20 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 	logTestResult(numTasks == 1 && countCSSSelector(selectors.Task) == 0, err, "should see none after deleting two tasks")
 
 	return numPassed, numFailed, err
+}
+
+func handleC9SplashPage(driver goselenium.WebDriver) {
+	// If this is a cloud9 URL, let's make sure our test is not
+	// ruined by their "click-through" warning about app previews.
+	// We do this by setting a cookie that makes it look like we
+	// already visited.
+	url, err := driver.CurrentURL()
+	if err == nil && strings.Contains(strings.ToLower(url.URL), "c9users") {
+		c := &goselenium.Cookie{
+			Name:  "c9.live.user.click-through",
+			Value: "ok",
+		}
+		driver.AddCookie(c)
+	}
+	_, err = driver.Go(url.URL)
 }
