@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	todotests "github.com/yale-cpsc-213/social-todo-selenium-tests/tests"
 )
@@ -30,7 +31,7 @@ func main() {
 	if len(os.Args) >= 4 && strings.Contains(os.Args[3], "fast") {
 		failFast = true
 	}
-	todotests.RunForURL(os.Args[1], os.Args[2], failFast, 1)
+	todotests.RunForURL(os.Args[1], os.Args[2], failFast, time.Millisecond * 500)
 }
 
 func isValidURL(u string) bool {
