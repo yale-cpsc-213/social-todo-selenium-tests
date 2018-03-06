@@ -29,11 +29,8 @@ func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration 
 		return 0, 0, err
 	}
 
-	handleC9SplashPage(driver)
-
 	// Delete the session once this function is completed.
 	defer driver.DeleteSession()
-
 	return Run(driver, testURL, true, failFast, sleepDuration)
 }
 
