@@ -45,8 +45,7 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 		}
 	}
 	die := func(msg string) {
-		driver.DeleteSession()
-		log.Fatalln(msg)
+		log.Panicln(msg)
 	}
 	logTestResult := func(passed bool, err error, testDesc string) {
 		doLog(statusText(passed && (err == nil)), "-", testDesc)
