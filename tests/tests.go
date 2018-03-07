@@ -29,6 +29,10 @@ func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration 
 		return 0, 0, err
 	}
 
+	timeout := 2000
+	driver.SetSessionTimeout(goselenium.SessionPageLoadTimeout(timeout))
+	driver.SetSessionTimeout(goselenium.SessionImplicitWaitTimeout(timeout))
+
 	// Delete the session once this function is completed.
 	defer driver.DeleteSession()
 	return Run(driver, testURL, true, failFast, sleepDuration)
