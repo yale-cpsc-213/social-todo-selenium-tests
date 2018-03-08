@@ -34,6 +34,10 @@ func RunForURL(seleniumURL string, testURL string, failFast bool, sleepDuration 
 	return Run(driver, testURL, true, failFast, sleepDuration)
 }
 
+func isC9URL(u string) bool {
+	return strings.Contains(strings.ToLower(u), "c9users")
+}
+
 // Run - run all tests
 //
 func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast bool, sleepDuration time.Duration) (int, int, error) {
@@ -93,7 +97,7 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 
 	// Navigate to the URL.
 	_, err := driver.Go(testURL)
-	if err == nil {
+	if err == nil && isC9URL(testURL) {
 		handleC9SplashPage(driver)
 	}
 	logTestResult(true, err, "should be up and running")
@@ -255,7 +259,7 @@ func handleC9SplashPage(driver goselenium.WebDriver) {
 	// We do this by setting a cookie that makes it look like we
 	// already visited.
 	url, err := driver.CurrentURL()
-	if err == nil && strings.Contains(strings.ToLower(url.URL), "c9users") {
+	if err == nil && isC9URL(url.URL) {
 		c := &goselenium.Cookie{
 			Name:  "c9.live.user.click-through",
 			Value: "ok",
