@@ -168,12 +168,14 @@ func Run(driver goselenium.WebDriver, testURL string, verbose bool, failFast boo
 	// Register the other two users
 	err = registerUser(driver, testURL, users[1])
 	if err != nil {
-		die("Error registering second user")
+		log.Println("Error registering second user; quitting")
+		return numPassed, numFailed, err
 	}
 	logout()
 	err = registerUser(driver, testURL, users[2])
 	if err != nil {
-		die("Error registering third user")
+		log.Println("Error registering third user; quitting.")
+		return numPassed, numFailed, err
 	}
 	logout()
 
